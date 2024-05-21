@@ -32,8 +32,8 @@ public class Lexer {
     }
 
     public boolean stringAhead(String check) {
-        var charIndex = 1;
-        for(charIndex = 1; charIndex<check.length(); charIndex++) {
+        var charIndex = 0;
+        for(charIndex = 0; charIndex<check.length(); charIndex++) {
             var ch = check.charAt(charIndex);
             if(ch == peek(charIndex)) {
                 charIndex++;
@@ -76,13 +76,21 @@ public class Lexer {
                 "cos",
                 "tan"
             };
+
             for(var kw : keywords) {
                 if(stringAhead(kw)) {
                     return new Result.Ok<>(new Token.Symbol(kw));
                 }
             }
 
-            if("+-*/=?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".contains(String.valueOf(this.peek()))) {
+            if("0123456789".contains(String.valueOf(this.peek()))) {
+                var sb = new StringBuilder();
+                while("0123456789".contains(String.valueOf(this.peek())))
+                    sb.append(this.read());
+                return new Result.Ok<>(new Token.Symbol(
+                    sb.toString()));
+            }
+            if("+-*/=?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_()".contains(String.valueOf(this.peek()))) {
                 return new Result.Ok<>(new Token.Symbol(
                     String.valueOf(this.read())));
             }
