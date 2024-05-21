@@ -7,7 +7,9 @@ public class Main {
     public static void main(String[] args) {
         var tokens = Lexer.lex(
                 """
-            main()->R
+            main()-> C = do{
+                1+2;
+            }
             """
         );
         System.out.println(tokens);

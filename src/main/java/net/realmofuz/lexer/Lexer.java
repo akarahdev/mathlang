@@ -27,9 +27,10 @@ public class Lexer {
     }
 
     public char read(int ahead) {
-        index += ahead;
-        while (Character.isWhitespace(this.text.charAt(index)))
-            index++;
+        for(var i = 0; i<ahead; i++) {
+            do index++;
+            while (Character.isWhitespace(this.text.charAt(index)));
+        }
         return this.text.charAt(index);
     }
 
@@ -41,9 +42,11 @@ public class Lexer {
     }
 
     public char peek(int ahead) {
-        var f = index + ahead;
-        while (Character.isWhitespace(this.text.charAt(f)))
-            f++;
+        var f = index;
+        for(var i = 0; i<ahead; i++) {
+            do f++;
+            while (Character.isWhitespace(this.text.charAt(f)));
+        }
         return this.text.charAt(f);
     }
 
@@ -71,7 +74,7 @@ public class Lexer {
             }
             charIndex++;
         }
-        this.index += check.length();
+        this.read(check.length());
         return true;
     }
 

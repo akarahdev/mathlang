@@ -17,6 +17,7 @@ public sealed interface Result<T, E> {
             return true;
         }
     }
+
     record Err<T, E>(E value) implements Result<T, E> {
         @Override
         public T unwrap() {
