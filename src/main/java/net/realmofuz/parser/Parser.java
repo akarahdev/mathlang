@@ -32,8 +32,10 @@ public class Parser {
         return this.tokenList.get(tokenIndex + 1);
     }
 
-    public AST parse() {
-        return parseFunction();
+    public AST.Module parse() {
+        return new AST.Module(List.of(
+                parseFunction()
+        ));
     }
 
     public AST.FunctionDeclaration parseFunction() {
@@ -63,8 +65,14 @@ public class Parser {
 
     public AST.Expression parseBaseValue() {
         if (peek() instanceof Token.Number nt) {
-            read();
+            match(Token.Number.class);
             return new AST.Expression.NumberValue(nt.value());
+        }
+        if(peek() instanceof Token.OpenParen op) {
+            match(Token.OpenParen.class);
+            var exp = parseExponent();
+            match(Token.CloseParen.class);
+            return new AST.Expression.Parenthesis(exp);
         }
         throw new RuntimeException("invalid base value `" + peek() + "`");
     }
@@ -84,15 +92,20 @@ public class Parser {
 
     public AST.Expression parseFactor() {
         var lhs = parseTerm();
-        while(peek() instanceof Token.Symbol ts &&
-            (ts.value().equals("*") || ts.value().equals("/"))) {
-            match(Token.Symbol.class);
-            if(ts.value().equals("*"))
+        while(true) {
+            if(peek() instanceof Token.Symbol ts
+            && (ts.value().equals("*") || ts.value().equals("/"))) {
+                match(Token.Symbol.class);
+                if(ts.value().equals("*"))
+                    lhs = new AST.Expression.Multiplication(lhs, parseTerm());
+                if(ts.value().equals("/"))
+                    lhs = new AST.Expression.Division(lhs, parseTerm());
+            } else if ((peek() instanceof Token.Symbol ts
+            && !("+-/*= \n\r").contains(ts.value()))
+            || peek() instanceof Token.OpenParen op) {
                 lhs = new AST.Expression.Multiplication(lhs, parseTerm());
-            if(ts.value().equals("/"))
-                lhs = new AST.Expression.Division(lhs, parseTerm());
+            } else return lhs;
         }
-        return lhs;
     }
 
     public AST.Expression parseExponent() {
@@ -138,7 +151,7 @@ public class Parser {
     public Type parseType() {
         var symbol = this.match(Token.Symbol.class);
         if (Objects.equals(symbol.value(), "C"))
-            return new Type.ComplexNumber();
+            return new Type.Complex();
         throw new RuntimeException("not a valid type: `" + symbol.value() + "`");
     }
 }

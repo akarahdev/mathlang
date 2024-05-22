@@ -26,8 +26,9 @@ public class CodegenContext {
     ) {
         var cc = new CodegenContext();
         return ClassFile.of().build(
-            ClassDesc.of("me/endistic/Runtime"),
+            ClassDesc.of("net.realmofuz.Runtime"),
             classBuilder -> {
+                cc.classBuilder = classBuilder;
                 classBuilder.withFlags(ClassFile.ACC_PUBLIC);
                 for(var function : module.functionDeclarations()) {
                     cc.currentMethod = function.functionName();
@@ -38,11 +39,8 @@ public class CodegenContext {
                         codeBuilder -> {
                             cc.currentCodeBuilder = codeBuilder;
                             function.expression().codegen(cc);
-                            codeBuilder.return_();
                         }
                     );
-
-
                 }
             }
         );
@@ -56,8 +54,8 @@ public class CodegenContext {
     ) {
         classBuilder.withMethod(
             name,
-            MethodTypeDesc.of(returnType.classDesc()),
-            ClassFile.ACC_PUBLIC,
+            MethodTypeDesc.of(ClassDesc.of("net.realmofuz.runtime.RuntimeValue")),
+            ClassFile.ACC_STATIC + ClassFile.ACC_PUBLIC,
             methodBuilder -> {
                 methods.put(name, methodBuilder);
                 methodBuilder.withCode(code);
