@@ -8,7 +8,7 @@ public class Main {
         var tokens = Lexer.lex(
                 """
             main()-> C = do{
-                1+2;
+                1;
             }
             """
         );
@@ -17,6 +17,5 @@ public class Main {
         var p = new Parser(tokens);
         var t = p.parse();
         System.out.println(t);
-
     }
 }
