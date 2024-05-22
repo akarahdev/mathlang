@@ -5,6 +5,7 @@ import net.realmofuz.parser.ast.AST;
 import net.realmofuz.type.Type;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,7 +25,7 @@ public class Parser {
     public <E extends Token> E match(Class<E> tokenClass) {
         var r = this.read();
         if (!(tokenClass.isInstance(r)))
-            throw new RuntimeException("not expected: found `" + r + "`, expected `" + tokenClass + "`");
+            throw new RuntimeException(STR."not expected: found `\{r}`, expected `\{tokenClass}`");
         return tokenClass.cast(r);
     }
 
@@ -33,16 +34,37 @@ public class Parser {
     }
 
     public AST.Module parse() {
-        return new AST.Module(List.of(
-                parseFunction()
-        ));
+        var fs = new ArrayList<AST.FunctionDeclaration>();
+        while(true) {
+            try {
+                peek();
+            } catch (IndexOutOfBoundsException ex) {
+                break;
+            }
+            fs.add(parseFunction());
+        }
+        return new AST.Module(fs);
     }
 
     public AST.FunctionDeclaration parseFunction() {
         var tok = this.match(Token.Symbol.class);
         System.out.println(tok);
 
+        var varNameParams = new ArrayList<String>();
+        var varTypeParams = new ArrayList<Type>();
+
         this.match(Token.OpenParen.class);
+        while(!(peek() instanceof Token.CloseParen)) {
+            var varName = this.match(Token.Symbol.class);
+            match(Token.Colon.class);
+            var varType = parseType();
+
+            varNameParams.add(varName.value());
+            varTypeParams.add(varType);
+
+            if(peek() instanceof Token.Comma)
+                match(Token.Comma.class);
+        }
         this.match(Token.CloseParen.class);
 
         var kw = this.match(Token.Keyword.class);
@@ -56,8 +78,11 @@ public class Parser {
             throw new RuntimeException("aaa");
 
         var expr = parseExpression();
+
         return new AST.FunctionDeclaration(
             tok.value(),
+            varTypeParams,
+            varNameParams,
             type,
             expr
         );
@@ -70,9 +95,20 @@ public class Parser {
         }
         if(peek() instanceof Token.OpenParen op) {
             match(Token.OpenParen.class);
-            var exp = parseExponent();
-            match(Token.CloseParen.class);
-            return new AST.Expression.Parenthesis(exp);
+            var vs = new ArrayList<AST.Expression>();
+            while(true) {
+                vs.add(parseExpression());
+                if(peek() instanceof Token.CloseParen cp) {
+                    match(Token.CloseParen.class);
+                    break;
+                }
+                match(Token.Comma.class);
+            }
+            return new AST.Expression.Parenthesis(vs);
+        }
+        if(peek() instanceof Token.Symbol sym) {
+            read();
+            return new AST.Expression.VariableValue(sym.value());
         }
         throw new RuntimeException("invalid base value `" + peek() + "`");
     }
@@ -145,13 +181,20 @@ public class Parser {
             }
         }
 
-        return parseExponent();
+        var r = parseExponent();
+        if(peek() instanceof Token.Semicolon)
+            match(Token.Semicolon.class);
+        return r;
     }
 
     public Type parseType() {
         var symbol = this.match(Token.Symbol.class);
+        if (Objects.equals(symbol.value(), "Z"))
+            return new Type.Integer();
+        if (Objects.equals(symbol.value(), "R"))
+            return new Type.Real();
         if (Objects.equals(symbol.value(), "C"))
             return new Type.Complex();
-        throw new RuntimeException("not a valid type: `" + symbol.value() + "`");
+        throw new RuntimeException(STR."not a valid type: `\{symbol.value()}`");
     }
 }

@@ -17,32 +17,19 @@ public sealed interface AST {
         ) implements AST.Expression, AST {
             @Override
             public void codegen(CodegenContext codegenContext) {
-                var mb = codegenContext.codeBuilder();
-                mb.new_(ClassDesc.of("net.realmofuz.runtime.Number"));
-                mb.dup();
-
-                mb.new_(ClassDesc.of("java.math.BigDecimal"));
-                mb.dup();
-
-                mb.ldc(number);
-                mb.invokespecial(
-                        ClassDesc.of("java.math.BigDecimal"),
-                        "<init>",
-                        MethodTypeDesc.of(
-                                ClassDesc.ofDescriptor("V"),
-                                ClassDesc.of("java.lang.String")
-                        )
+                codegenContext.loadNumber(
+                    number,
+                    "0"
                 );
+            }
+        }
 
-
-                mb.invokespecial(
-                    ClassDesc.of("net.realmofuz.runtime.Number"),
-                    "<init>",
-                    MethodTypeDesc.of(
-                        ClassDesc.ofDescriptor("V"),
-                        ClassDesc.of("java.math.BigDecimal")
-                    )
-                );
+        record VariableValue(
+            String varName
+        ) implements AST.Expression, AST {
+            @Override
+            public void codegen(CodegenContext codegenContext) {
+                codegenContext.codeBuilder().aload(codegenContext.variables().get(varName).index());
             }
         }
 
@@ -52,7 +39,9 @@ public sealed interface AST {
         ) implements AST.Expression, AST {
             @Override
             public void codegen(CodegenContext codegenContext) {
-
+                lhs.codegen(codegenContext);
+                rhs.codegen(codegenContext);
+                codegenContext.binaryOperation("pow");
             }
         }
 
@@ -62,18 +51,24 @@ public sealed interface AST {
         ) implements AST.Expression, AST {
             @Override
             public void codegen(CodegenContext codegenContext) {
+                var cb = codegenContext.codeBuilder();
+                if(lhs instanceof VariableValue lv
+                    && rhs instanceof Parenthesis pr) {
+                    pr.codegen(codegenContext);
+                    cb.invokestatic(
+                        ClassDesc.of("net.realmofuz.Runtime"),
+                        lv.varName,
+                        MethodTypeDesc.of(
+                            ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
+                            codegenContext.typeData().functionDatas().get(lv.varName()).parameterTypes().stream().map(it ->
+                                ClassDesc.of("net.realmofuz.runtime.RuntimeValue")).toList()
+                        )
+                    );
+                    return;
+                }
                 lhs.codegen(codegenContext);
                 rhs.codegen(codegenContext);
-                codegenContext.codeBuilder()
-                        .invokestatic(
-                                ClassDesc.of("net.realmofuz.runtime.Operations"),
-                                "mul",
-                                MethodTypeDesc.of(
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue")
-                                )
-                        );
+                codegenContext.binaryOperation("mul");
             }
         }
 
@@ -85,16 +80,7 @@ public sealed interface AST {
             public void codegen(CodegenContext codegenContext) {
                 lhs.codegen(codegenContext);
                 rhs.codegen(codegenContext);
-                codegenContext.codeBuilder()
-                        .invokestatic(
-                                ClassDesc.of("net.realmofuz.runtime.Operations"),
-                                "div",
-                                MethodTypeDesc.of(
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue")
-                                )
-                        );
+                codegenContext.binaryOperation("div");
             }
         }
 
@@ -106,16 +92,7 @@ public sealed interface AST {
             public void codegen(CodegenContext codegenContext) {
                 lhs.codegen(codegenContext);
                 rhs.codegen(codegenContext);
-                codegenContext.codeBuilder()
-                        .invokestatic(
-                                ClassDesc.of("net.realmofuz.runtime.Operations"),
-                                "add",
-                                MethodTypeDesc.of(
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue")
-                                )
-                        );
+                codegenContext.binaryOperation("add");
             }
         }
 
@@ -127,16 +104,7 @@ public sealed interface AST {
             public void codegen(CodegenContext codegenContext) {
                 lhs.codegen(codegenContext);
                 rhs.codegen(codegenContext);
-                codegenContext.codeBuilder()
-                        .invokestatic(
-                                ClassDesc.of("net.realmofuz.runtime.Operations"),
-                                "sub",
-                                MethodTypeDesc.of(
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue"),
-                                        ClassDesc.of("net.realmofuz.runtime.RuntimeValue")
-                                )
-                        );
+                codegenContext.binaryOperation("sub");
             }
         }
 
@@ -166,16 +134,20 @@ public sealed interface AST {
         }
 
         record Parenthesis(
-                Expression inner
+                List<Expression> inner
         ) implements AST.Expression, AST {
             @Override
             public void codegen(CodegenContext codegenContext) {
-                inner.codegen(codegenContext);
+                for(var e : inner)
+                    e.codegen(codegenContext);
             }
         }
     }
+
     record FunctionDeclaration(
             String functionName,
+            List<Type> parameters,
+            List<String> parameterNames,
             Type functionReturnType,
             Expression expression
     ) implements AST {

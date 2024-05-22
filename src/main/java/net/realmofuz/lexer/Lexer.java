@@ -164,6 +164,10 @@ public class Lexer {
                 this.read();
                 return new Result.Ok<>(new Token.Colon());
             }
+            if (",".contains(String.valueOf(this.peek()))) {
+                this.read();
+                return new Result.Ok<>(new Token.Comma());
+            }
 
         } catch (StringIndexOutOfBoundsException _) {
         }

@@ -1,26 +1,12 @@
 package net.realmofuz.type;
 
-import java.lang.constant.ClassDesc;
-
+/**
+ * Represents a type in the code.
+ * Note that in the ClassDesc's, the type should be autoconverted to "net.realmofuz.runtime.RuntimeValue" so
+ * it can operate using `Operations`. The compiler will do the rest of the checking.
+ */
 public sealed interface Type {
-    record Integer() implements Type {
-        @Override
-        public ClassDesc classDesc() {
-            return ClassDesc.of("net.realmofuz.runtime.Number");
-        }
-    }
-    record Real() implements Type {
-        @Override
-        public ClassDesc classDesc() {
-            return ClassDesc.of("net.realmofuz.runtime.Number");
-        }
-    }
-    record Complex() implements Type {
-        @Override
-        public ClassDesc classDesc() {
-            return ClassDesc.of("net.realmofuz.runtime.Number");
-        }
-    }
-
-    ClassDesc classDesc();
+    record Integer() implements Type { }
+    record Real() implements Type { }
+    record Complex() implements Type { }
 }

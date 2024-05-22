@@ -1,6 +1,17 @@
 package net.realmofuz.runtime;
 
+import java.math.BigDecimal;
+
 public class Operations {
+    public static Number number(
+        String real,
+        String imag
+    ) {
+        return new Number(
+            new BigDecimal(real),
+            new BigDecimal(imag)
+        );
+    }
     public static RuntimeValue add(
             RuntimeValue lhs,
             RuntimeValue rhs

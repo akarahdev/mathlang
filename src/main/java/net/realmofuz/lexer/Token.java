@@ -23,5 +23,7 @@ public sealed interface Token {
     }
     record Colon() implements Token {
     }
+    record Comma() implements Token {
+    }
 }
 
