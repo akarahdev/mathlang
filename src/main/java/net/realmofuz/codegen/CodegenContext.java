@@ -39,7 +39,6 @@ public class CodegenContext {
                 cc.classBuilder = classBuilder;
                 classBuilder.withFlags(ClassFile.ACC_PUBLIC);
                 for(var function : module.functionDeclarations()) {
-                    System.out.println("function: " + function.functionName());
                     cc.currentMethod = function.functionName();
                     cc.createFunction(
                         function.functionName(),
@@ -77,11 +76,6 @@ public class CodegenContext {
                 new Type.Complex()
             ));
         }
-
-        System.out.println(variables);
-        System.out.println(parameterNames);
-        System.out.println(parameterTypes);
-
         classBuilder.withMethod(
             name,
             MethodTypeDesc.of(

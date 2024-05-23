@@ -1,5 +1,7 @@
 package net.realmofuz.parser;
 
+import net.realmofuz.codegen.CompileError;
+import net.realmofuz.codegen.CompileException;
 import net.realmofuz.lexer.Token;
 import net.realmofuz.parser.ast.AST;
 import net.realmofuz.type.Type;
@@ -25,7 +27,7 @@ public class Parser {
     public <E extends Token> E match(Class<E> tokenClass) {
         var r = this.read();
         if (!(tokenClass.isInstance(r)))
-            throw new RuntimeException(STR."not expected: found `\{r}`, expected `\{tokenClass}`");
+            throw new CompileException(new CompileError.UnexpectedToken(r, tokenClass), r.span());
         return tokenClass.cast(r);
     }
 
@@ -35,7 +37,7 @@ public class Parser {
 
     public AST.Module parse() {
         var fs = new ArrayList<AST.FunctionDeclaration>();
-        while(true) {
+        while (true) {
             try {
                 peek();
             } catch (IndexOutOfBoundsException ex) {
@@ -48,13 +50,12 @@ public class Parser {
 
     public AST.FunctionDeclaration parseFunction() {
         var tok = this.match(Token.Symbol.class);
-        System.out.println(tok);
 
         var varNameParams = new ArrayList<String>();
         var varTypeParams = new ArrayList<Type>();
 
         this.match(Token.OpenParen.class);
-        while(!(peek() instanceof Token.CloseParen)) {
+        while (!(peek() instanceof Token.CloseParen)) {
             var varName = this.match(Token.Symbol.class);
             match(Token.Colon.class);
             var varType = parseType();
@@ -62,7 +63,7 @@ public class Parser {
             varNameParams.add(varName.value());
             varTypeParams.add(varType);
 
-            if(peek() instanceof Token.Comma)
+            if (peek() instanceof Token.Comma)
                 match(Token.Comma.class);
         }
         this.match(Token.CloseParen.class);
@@ -79,6 +80,9 @@ public class Parser {
 
         var expr = parseExpression();
 
+        if(peek() instanceof Token.Semicolon)
+            this.match(Token.Semicolon.class);
+
         return new AST.FunctionDeclaration(
             tok.value(),
             varTypeParams,
@@ -93,12 +97,12 @@ public class Parser {
             match(Token.Number.class);
             return new AST.Expression.NumberValue(nt.value());
         }
-        if(peek() instanceof Token.OpenParen op) {
+        if (peek() instanceof Token.OpenParen op) {
             match(Token.OpenParen.class);
             var vs = new ArrayList<AST.Expression>();
-            while(true) {
+            while (true) {
                 vs.add(parseExpression());
-                if(peek() instanceof Token.CloseParen cp) {
+                if (peek() instanceof Token.CloseParen cp) {
                     match(Token.CloseParen.class);
                     break;
                 }
@@ -106,21 +110,24 @@ public class Parser {
             }
             return new AST.Expression.Parenthesis(vs);
         }
-        if(peek() instanceof Token.Symbol sym) {
+        if (peek() instanceof Token.Symbol sym) {
             read();
             return new AST.Expression.VariableValue(sym.value());
         }
-        throw new RuntimeException("invalid base value `" + peek() + "`");
+        throw new CompileException(
+            new CompileError.UnexpectedValue(peek()),
+            peek().span(),
+            "check documentation for what a value is");
     }
 
     public AST.Expression parseTerm() {
         var lhs = parseBaseValue();
-        while(peek() instanceof Token.Symbol ts &&
+        while (peek() instanceof Token.Symbol ts &&
             (ts.value().equals("+") || ts.value().equals("-"))) {
             match(Token.Symbol.class);
-            if(ts.value().equals("+"))
+            if (ts.value().equals("+"))
                 lhs = new AST.Expression.Addition(lhs, parseBaseValue());
-            if(ts.value().equals("-"))
+            if (ts.value().equals("-"))
                 lhs = new AST.Expression.Subtraction(lhs, parseBaseValue());
         }
         return lhs;
@@ -128,17 +135,17 @@ public class Parser {
 
     public AST.Expression parseFactor() {
         var lhs = parseTerm();
-        while(true) {
-            if(peek() instanceof Token.Symbol ts
-            && (ts.value().equals("*") || ts.value().equals("/"))) {
+        while (true) {
+            if (peek() instanceof Token.Symbol ts
+                && (ts.value().equals("*") || ts.value().equals("/"))) {
                 match(Token.Symbol.class);
-                if(ts.value().equals("*"))
+                if (ts.value().equals("*"))
                     lhs = new AST.Expression.Multiplication(lhs, parseTerm());
-                if(ts.value().equals("/"))
+                if (ts.value().equals("/"))
                     lhs = new AST.Expression.Division(lhs, parseTerm());
             } else if ((peek() instanceof Token.Symbol ts
-            && !("+-/*= \n\r").contains(ts.value()))
-            || peek() instanceof Token.OpenParen op) {
+                && !("+-/*= \n\r").contains(ts.value()))
+                || peek() instanceof Token.OpenParen op) {
                 lhs = new AST.Expression.Multiplication(lhs, parseTerm());
             } else return lhs;
         }
@@ -146,7 +153,7 @@ public class Parser {
 
     public AST.Expression parseExponent() {
         var lhs = parseFactor();
-        while(peek() instanceof Token.Symbol ts && ts.value().equals("^")) {
+        while (peek() instanceof Token.Symbol ts && ts.value().equals("^")) {
             match(Token.Symbol.class);
             lhs = new AST.Expression.Exponent(lhs, parseFactor());
         }
@@ -161,7 +168,6 @@ public class Parser {
                 var expressions = new ArrayList<AST.Expression>();
                 while (!(peek() instanceof Token.CloseBrace)) {
                     expressions.add(parseExponent());
-                    System.out.println(expressions);
                     match(Token.Semicolon.class);
                 }
                 match(Token.CloseBrace.class);
@@ -181,10 +187,7 @@ public class Parser {
             }
         }
 
-        var r = parseExponent();
-        if(peek() instanceof Token.Semicolon)
-            match(Token.Semicolon.class);
-        return r;
+        return parseExponent();
     }
 
     public Type parseType() {

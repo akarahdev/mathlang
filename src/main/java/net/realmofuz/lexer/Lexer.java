@@ -10,14 +10,47 @@ public class Lexer {
     public List<Token> tokenList = new ArrayList<>();
     int index = -1;
 
+    String fileName;
+
+    public int findLine(int index) {
+        var line = 0;
+        var ci = 0;
+        for(var ch : this.text.toCharArray()) {
+            if(ci >= index)
+                return line;
+            ci++;
+            if(ch == '\n')
+                line += 1;
+        }
+        return line;
+    }
+
+    public int findColumn(int index) {
+        var line = 0;
+        var ci = 0;
+        var ahead = 0;
+        for(var ch : this.text.toCharArray()) {
+            if(ci >= index)
+                return ahead;
+            ci++;
+            ahead++;
+            if(ch == '\n')
+                ahead = 0;
+        }
+        return line;
+    }
+
     public Lexer(String text) {
         this.text = text;
     }
 
-    public static List<Token> lex(String input) {
+    public static List<Token> lex(String input, String fileName) {
         var lexer = new Lexer(input);
+        lexer.fileName = fileName;
 
-        return lexer.startLexing();
+        var sl = lexer.startLexing();
+
+        return sl;
     }
 
     public char read() {
@@ -65,10 +98,6 @@ public class Lexer {
     public boolean stringAhead(String check) {
         var charIndex = 1;
         for(var ch : check.toCharArray()) {
-            if(check.equals("->")) {
-                System.out.println("ch: " + ch);
-                System.out.println("cmp: " + peek(charIndex));
-            }
             if(ch != peek(charIndex)) {
                 return false;
             }
@@ -100,7 +129,8 @@ public class Lexer {
 
             for (var kw : keywords) {
                 if (stringAhead(kw)) {
-                    return new Result.Ok<>(new Token.Keyword(kw));
+                    return new Result.Ok<>(new Token.Keyword(kw,
+                        new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
                 }
             }
 
@@ -113,7 +143,8 @@ public class Lexer {
                 }
 
                 return new Result.Ok<>(new Token.Number(
-                        sb.toString()));
+                        sb.toString(),
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
 
             var operatorString = "+-*/=^?";
@@ -121,7 +152,8 @@ public class Lexer {
                 var sb = new StringBuilder();
                 while(operatorString.contains(String.valueOf(this.peek())))
                     sb.append(this.read());
-                return new Result.Ok<>(new Token.Symbol(sb.toString()));
+                return new Result.Ok<>(new Token.Symbol(sb.toString(),
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
 
             var identString = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
@@ -129,44 +161,54 @@ public class Lexer {
                 var sb = new StringBuilder();
                 while(identString.contains(String.valueOf(this.peek())))
                     sb.append(this.read());
-                return new Result.Ok<>(new Token.Symbol(sb.toString()));
+                return new Result.Ok<>(new Token.Symbol(sb.toString(),
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
 
             if ("(".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.OpenParen());
+                return new Result.Ok<>(new Token.OpenParen(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
             if (")".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.CloseParen());
+                return new Result.Ok<>(new Token.CloseParen(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
             if ("{".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.OpenBrace());
+                return new Result.Ok<>(new Token.OpenBrace(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
             if ("}".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.CloseBrace());
+                return new Result.Ok<>(new Token.CloseBrace(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
             if ("[".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.OpenBracket());
+                return new Result.Ok<>(new Token.OpenBracket(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
             if ("]".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.CloseBracket());
+                return new Result.Ok<>(new Token.CloseBracket(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
             if (";".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.Semicolon());
+                return new Result.Ok<>(new Token.Semicolon(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
             if (":".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.Colon());
+                return new Result.Ok<>(new Token.Colon(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
             if (",".contains(String.valueOf(this.peek()))) {
                 this.read();
-                return new Result.Ok<>(new Token.Comma());
+                return new Result.Ok<>(new Token.Comma(
+                    new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
 
         } catch (StringIndexOutOfBoundsException _) {
