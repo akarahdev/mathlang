@@ -5,8 +5,8 @@ import net.realmofuz.type.Type;
 
 public sealed interface CompileError {
     record UnexpectedToken(
-        Token expected,
-        Class<?> found
+        Token found,
+        Class<?> expected
     ) implements CompileError {
         public String message() {
             return STR."expected token \{expected}, found \{found}";

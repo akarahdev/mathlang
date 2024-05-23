@@ -149,10 +149,7 @@ public class Lexer {
 
             var operatorString = "+-*/=^?";
             if (operatorString.contains(String.valueOf(this.peek()))) {
-                var sb = new StringBuilder();
-                while(operatorString.contains(String.valueOf(this.peek())))
-                    sb.append(this.read());
-                return new Result.Ok<>(new Token.Symbol(sb.toString(),
+                return new Result.Ok<>(new Token.Symbol(String.valueOf(this.read()),
                     new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
 

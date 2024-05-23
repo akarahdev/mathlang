@@ -6,7 +6,24 @@ package net.realmofuz.type;
  * it can operate using `Operations`. The compiler will do the rest of the checking.
  */
 public sealed interface Type {
-    record Integer() implements Type { }
-    record Real() implements Type { }
-    record Complex() implements Type { }
+    record Integer() implements Type {
+        @Override
+        public int typeWeight() {
+            return 1;
+        }
+    }
+    record Real() implements Type {
+        @Override
+        public int typeWeight() {
+            return 2;
+        }
+    }
+    record Complex() implements Type {
+        @Override
+        public int typeWeight() {
+            return 3;
+        }
+    }
+
+    int typeWeight();
 }

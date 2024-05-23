@@ -1,6 +1,7 @@
 package net.realmofuz.type;
 
 import net.realmofuz.parser.ast.AST;
+import net.realmofuz.parser.ast.Module;
 
 import java.util.HashMap;
 
@@ -10,7 +11,7 @@ import java.util.HashMap;
 public class TypeGatherer {
     ASTModuleTypeData typeData;
 
-    public ASTModuleTypeData gather(AST.Module module) {
+    public ASTModuleTypeData gather(Module module) {
         typeData = new ASTModuleTypeData(
             new HashMap<>()
         );
