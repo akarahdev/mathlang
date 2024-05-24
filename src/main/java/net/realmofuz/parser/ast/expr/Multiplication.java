@@ -1,6 +1,8 @@
-package net.realmofuz.parser.ast;
+package net.realmofuz.parser.ast.expr;
 
 import net.realmofuz.codegen.CodegenContext;
+import net.realmofuz.parser.ast.AST;
+import net.realmofuz.parser.ast.value.VariableValue;
 
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;

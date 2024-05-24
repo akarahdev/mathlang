@@ -4,11 +4,16 @@ import net.realmofuz.codegen.CompileError;
 import net.realmofuz.codegen.CompileException;
 import net.realmofuz.lexer.Token;
 import net.realmofuz.parser.ast.*;
-import net.realmofuz.parser.ast.Module;
+import net.realmofuz.parser.ast.block.DoBlock;
+import net.realmofuz.parser.ast.block.SwitchBlock;
+import net.realmofuz.parser.ast.value.NumberValue;
+import net.realmofuz.parser.ast.expr.*;
+import net.realmofuz.parser.ast.headers.Module;
+import net.realmofuz.parser.ast.headers.FunctionDeclaration;
+import net.realmofuz.parser.ast.value.VariableValue;
 import net.realmofuz.type.Type;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 

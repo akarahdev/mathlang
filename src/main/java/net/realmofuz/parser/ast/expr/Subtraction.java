@@ -1,8 +1,9 @@
-package net.realmofuz.parser.ast;
+package net.realmofuz.parser.ast.expr;
 
 import net.realmofuz.codegen.CodegenContext;
+import net.realmofuz.parser.ast.AST;
 
-public record Exponent(
+public record Subtraction(
         AST.Expression lhs,
         AST.Expression rhs
 ) implements AST.Expression, AST {
@@ -10,6 +11,6 @@ public record Exponent(
     public void codegen(CodegenContext codegenContext) {
         lhs.codegen(codegenContext);
         rhs.codegen(codegenContext);
-        codegenContext.binaryOperation("pow");
+        codegenContext.binaryOperation("sub");
     }
 }

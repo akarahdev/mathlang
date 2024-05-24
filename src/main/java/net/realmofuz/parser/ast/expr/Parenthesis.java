@@ -1,11 +1,12 @@
-package net.realmofuz.parser.ast;
+package net.realmofuz.parser.ast.expr;
 
 import net.realmofuz.codegen.CodegenContext;
+import net.realmofuz.parser.ast.AST;
 
 import java.util.List;
 
 public record Parenthesis(
-        List<Expression> inner
+        List<AST.Expression> inner
 ) implements AST.Expression, AST {
     @Override
     public void codegen(CodegenContext codegenContext) {

@@ -1,7 +1,6 @@
 package net.realmofuz.type;
 
-import net.realmofuz.parser.ast.AST;
-import net.realmofuz.parser.ast.Module;
+import net.realmofuz.parser.ast.headers.Module;
 
 import java.util.HashMap;
 

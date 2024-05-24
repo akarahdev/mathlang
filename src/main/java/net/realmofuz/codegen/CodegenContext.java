@@ -1,9 +1,8 @@
 package net.realmofuz.codegen;
 
-import net.realmofuz.parser.ast.AST;
-import net.realmofuz.parser.ast.DoBlock;
-import net.realmofuz.parser.ast.Module;
-import net.realmofuz.parser.ast.SwitchBlock;
+import net.realmofuz.parser.ast.block.DoBlock;
+import net.realmofuz.parser.ast.headers.Module;
+import net.realmofuz.parser.ast.block.SwitchBlock;
 import net.realmofuz.type.Type;
 import net.realmofuz.type.ASTModuleTypeData;
 
@@ -15,7 +14,6 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 /**

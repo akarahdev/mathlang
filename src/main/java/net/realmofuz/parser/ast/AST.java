@@ -10,9 +10,8 @@ import java.util.List;
 @SuppressWarnings("preview")
 public interface AST {
     interface Expression extends AST { }
-
-
-
+    interface Header extends AST { }
+    interface Block extends AST { }
 
     /**
      * Generates the code responsible for the execution of
