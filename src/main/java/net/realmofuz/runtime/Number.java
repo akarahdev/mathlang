@@ -2,23 +2,28 @@ package net.realmofuz.runtime;
 
 import java.math.BigDecimal;
 
-public class Number implements RuntimeValue {
-    BigDecimal real;
-    BigDecimal imag;
-    BigDecimal j = new BigDecimal("0");
-    BigDecimal k = new BigDecimal("0");
+public record Number(
+        BigDecimal real,
+        BigDecimal imag
+) implements RuntimeValue {
 
-    public Number(BigDecimal real, BigDecimal imag) {
-        this.real = real;
-        this.imag = imag;
+    @Override
+    public RuntimeValue add(RuntimeValue other) {
+        if (other instanceof Number rv)
+            return new Number(
+                    this.real.add(rv.real()),
+                    this.imag.add(rv.imag())
+            );
+        return null;
     }
 
-    public Number(BigDecimal real) {
-        this.real = real;
-        this.imag = new BigDecimal(0);
-    }
-
-    public String toString() {
-        return STR."\{this.real}+\{this.imag}i+\{this.j}j+\{this.k}k";
+    @Override
+    public RuntimeValue sub(RuntimeValue other) {
+        if (other instanceof Number rv)
+            return new Number(
+                    this.real.subtract(rv.real()),
+                    this.imag.subtract(rv.imag())
+            );
+        return null;
     }
 }

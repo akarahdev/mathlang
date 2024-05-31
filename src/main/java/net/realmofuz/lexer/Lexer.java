@@ -86,6 +86,7 @@ public class Lexer {
     public List<Token> startLexing() {
         while (true) {
             var token = parseToken();
+            System.out.println(token);
             if (token.isOk()) {
                 this.tokenList.add(token.unwrap());
             } else {
@@ -110,19 +111,10 @@ public class Lexer {
     public Result<Token, Void> parseToken() {
         try {
             var keywords = new String[]{
-                    "struct",
                     "if",
-                    "support",
 
                     "do",
                     "switch",
-
-                    "sqrt",
-                    "sin",
-                    "cos",
-                    "tan",
-                    "real",
-                    "imag",
 
                     "->"
             };
@@ -137,8 +129,13 @@ public class Lexer {
             if ("0123456789".contains(String.valueOf(this.peek()))) {
                 var sb = new StringBuilder();
                 try {
-                    while ("0123456789".contains(String.valueOf(this.peek())))
+
+                    while ("0123456789".contains(String.valueOf(this.peek()))) {
                         sb.append(this.read());
+                        if(Character.isWhitespace(this.text.charAt(index+1)))
+                            break;;
+                    }
+
                 } catch (StringIndexOutOfBoundsException _) {
                 }
 
@@ -156,12 +153,20 @@ public class Lexer {
             var identString = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
             if (identString.contains(String.valueOf(this.peek()))) {
                 var sb = new StringBuilder();
-                while(identString.contains(String.valueOf(this.peek())))
+                while(identString.contains(String.valueOf(this.peek()))) {
                     sb.append(this.read());
+                    if(Character.isWhitespace(this.text.charAt(index+1)))
+                        break;
+                }
                 return new Result.Ok<>(new Token.Symbol(sb.toString(),
                     new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
             }
 
+            if ("\\".contains(String.valueOf(this.peek()))) {
+                this.read();
+                return new Result.Ok<>(new Token.Backslash(
+                        new Span(findLine(this.index), findColumn(this.index), this.fileName, this.text)));
+            }
             if ("(".contains(String.valueOf(this.peek()))) {
                 this.read();
                 return new Result.Ok<>(new Token.OpenParen(

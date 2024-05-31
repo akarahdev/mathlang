@@ -25,6 +25,8 @@ public sealed interface Token {
     }
     record Comma(Span span) implements Token {
     }
+    record Backslash(Span span) implements Token {
+    }
     record EOF(Span span) implements Token {
     }
 

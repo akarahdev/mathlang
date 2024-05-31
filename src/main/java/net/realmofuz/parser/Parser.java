@@ -1,16 +1,9 @@
 package net.realmofuz.parser;
 
-import net.realmofuz.codegen.CompileError;
-import net.realmofuz.codegen.CompileException;
+import net.realmofuz.lexer.Span;
 import net.realmofuz.lexer.Token;
-import net.realmofuz.parser.ast.*;
-import net.realmofuz.parser.ast.block.DoBlock;
-import net.realmofuz.parser.ast.block.SwitchBlock;
-import net.realmofuz.parser.ast.value.NumberValue;
-import net.realmofuz.parser.ast.expr.*;
-import net.realmofuz.parser.ast.headers.Module;
-import net.realmofuz.parser.ast.headers.FunctionDeclaration;
-import net.realmofuz.parser.ast.value.VariableValue;
+import net.realmofuz.parser.ast.AST;
+import net.realmofuz.parser.ast.BinaryOperationType;
 import net.realmofuz.type.Type;
 
 import java.util.ArrayList;
@@ -33,76 +26,87 @@ public class Parser {
     public <E extends Token> E match(Class<E> tokenClass) {
         var r = this.read();
         if (!(tokenClass.isInstance(r)))
-            throw new CompileException(new CompileError.UnexpectedToken(r, tokenClass), r.span());
+            throw new RuntimeException("failed to match");
         return tokenClass.cast(r);
     }
 
     public Token peek() {
-        return this.tokenList.get(tokenIndex + 1);
+        try {
+            return this.tokenList.get(tokenIndex + 1);
+        } catch (IndexOutOfBoundsException ex) {
+            return new Token.EOF(
+                    this.tokenList.get(tokenIndex).span()
+            );
+        }
     }
 
-    public Module parse() {
-        var fs = new ArrayList<FunctionDeclaration>();
+    public List<AST.Expression> parse() {
+        var fs = new ArrayList<AST.Expression>();
         while (true) {
             try {
                 peek();
             } catch (IndexOutOfBoundsException ex) {
                 break;
             }
-            fs.add(parseFunction());
+            fs.add(parseHeaderFunction());
+            if(peek() instanceof Token.EOF)
+                break;
         }
-        return new Module(fs);
+        return fs;
     }
 
-    public FunctionDeclaration parseFunction() {
-        var tok = this.match(Token.Symbol.class);
+    public AST.Expression.BinaryOperation parseHeaderFunction() {
+        var name = this.match(Token.Symbol.class);
 
-        var varNameParams = new ArrayList<String>();
-        var varTypeParams = new ArrayList<Type>();
-
-        this.match(Token.OpenParen.class);
-        while (!(peek() instanceof Token.CloseParen)) {
-            var varName = this.match(Token.Symbol.class);
-            match(Token.Colon.class);
-            var varType = parseType();
-
-            varNameParams.add(varName.value());
-            varTypeParams.add(varType);
-
-            if (peek() instanceof Token.Comma)
-                match(Token.Comma.class);
+        var params = new ArrayList<AST.Expression>();
+        while (!(peek() instanceof Token.Symbol tk
+                && tk.value().equals("="))) {
+            params.add(parseBaseValue());
         }
-        this.match(Token.CloseParen.class);
+
+        var kw = this.match(Token.Symbol.class);
+        if (!Objects.equals(kw.value(), "="))
+            throw new RuntimeException("aaa");
+
+        var expr = parseExpression();
+
+        return new AST.Expression.BinaryOperation(
+                new AST.Value.VariableValue(name.value()),
+                new AST.Value.FunctionValue(
+                        params,
+                        expr
+                ),
+                BinaryOperationType.STORE
+        );
+    }
+
+    public AST.Value.FunctionValue parseFunction() {
+        this.match(Token.Backslash.class);
+
+        var names = new ArrayList<AST.Expression>();
+
+        while (!(peek() instanceof Token.Keyword tk
+        && tk.value().equals("->"))
+        && peek() instanceof Token.Symbol ts) {
+            names.add(parseBaseValue());
+        }
 
         var kw = this.match(Token.Keyword.class);
         if (!Objects.equals(kw.value(), "->"))
             throw new RuntimeException("aaa");
 
-        var type = this.parseType();
-
-        var eq = this.match(Token.Symbol.class);
-        if (!Objects.equals(eq.value(), "="))
-            throw new CompileException(new CompileError.UnexpectedToken(eq, Token.Symbol.class), eq.span(),
-                    "you always need to put equals here");
-
         var expr = parseExpression();
 
-        if(peek() instanceof Token.Semicolon)
-            this.match(Token.Semicolon.class);
-
-        return new FunctionDeclaration(
-            tok.value(),
-            varTypeParams,
-            varNameParams,
-            type,
-            expr
+        return new AST.Value.FunctionValue(
+                names,
+                expr
         );
     }
 
     public AST.Expression parseBaseValue() {
         if (peek() instanceof Token.Number nt) {
             match(Token.Number.class);
-            return new NumberValue(nt.value());
+            return new AST.Value.NumberValue(nt.value());
         }
         if (peek() instanceof Token.OpenParen op) {
             match(Token.OpenParen.class);
@@ -115,27 +119,29 @@ public class Parser {
                 }
                 match(Token.Comma.class);
             }
-            return new Parenthesis(vs);
+            return new AST.Value.Parenthesis(vs);
         }
         if (peek() instanceof Token.Symbol sym) {
             read();
-            return new VariableValue(sym.value());
+            return new AST.Value.VariableValue(sym.value());
         }
-        throw new CompileException(
-            new CompileError.UnexpectedValue(peek()),
-            peek().span(),
-            "check documentation for what a value is");
+        if(peek() instanceof Token.Backslash) {
+            return parseFunction();
+        }
+        throw new RuntimeException("check value docs pls <3 " + peek());
     }
 
     public AST.Expression parseTerm() {
         var lhs = parseBaseValue();
         while (peek() instanceof Token.Symbol ts &&
-            (ts.value().equals("+") || ts.value().equals("-"))) {
+                (ts.value().equals("+") || ts.value().equals("-"))) {
             match(Token.Symbol.class);
             if (ts.value().equals("+"))
-                lhs = new Addition(lhs, parseBaseValue());
+                lhs = new AST.Expression.BinaryOperation(lhs, parseBaseValue(),
+                        BinaryOperationType.ADD);
             if (ts.value().equals("-"))
-                lhs = new Subtraction(lhs, parseBaseValue());
+                lhs = new AST.Expression.BinaryOperation(lhs, parseBaseValue(),
+                        BinaryOperationType.SUBTRACT);
         }
         return lhs;
     }
@@ -144,16 +150,19 @@ public class Parser {
         var lhs = parseTerm();
         while (true) {
             if (peek() instanceof Token.Symbol ts
-                && (ts.value().equals("*") || ts.value().equals("/"))) {
+                    && (ts.value().equals("*") || ts.value().equals("/"))) {
                 match(Token.Symbol.class);
                 if (ts.value().equals("*"))
-                    lhs = new Multiplication(lhs, parseTerm());
+                    lhs = new AST.Expression.BinaryOperation(lhs, parseTerm(),
+                        BinaryOperationType.MULTIPLY);
                 if (ts.value().equals("/"))
-                    lhs = new Division(lhs, parseTerm());
-            } else if ((peek() instanceof Token.Symbol ts
-                && !("+-/*= \n\r").contains(ts.value()))
-                || peek() instanceof Token.OpenParen op) {
-                lhs = new Multiplication(lhs, parseTerm());
+                    lhs = new AST.Expression.BinaryOperation(lhs, parseTerm(),
+                        BinaryOperationType.DIVIDE);
+            } else if (peek() instanceof Token.OpenParen
+            || (peek() instanceof Token.Symbol ts &&
+                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWYXZ_".contains(ts.value()))) {
+                lhs = new AST.Expression.BinaryOperation(lhs, parseTerm(),
+                        BinaryOperationType.PARENTHESIS_MULTIPLICATION);
             } else return lhs;
         }
     }
@@ -162,7 +171,8 @@ public class Parser {
         var lhs = parseFactor();
         while (peek() instanceof Token.Symbol ts && ts.value().equals("^")) {
             match(Token.Symbol.class);
-            lhs = new Exponent(lhs, parseFactor());
+            lhs = new AST.Expression.BinaryOperation(lhs, parseFactor(),
+                    BinaryOperationType.EXPONENT);
         }
         return lhs;
     }
@@ -178,7 +188,7 @@ public class Parser {
                     match(Token.Semicolon.class);
                 }
                 match(Token.CloseBrace.class);
-                return new DoBlock(expressions);
+                return new AST.Block.DoBlock(expressions);
             }
 
             if (Objects.equals(kw.value(), "switch")) {
@@ -190,7 +200,7 @@ public class Parser {
                     match(Token.Semicolon.class);
                 }
                 match(Token.CloseBrace.class);
-                return new SwitchBlock(expressions);
+                return new AST.Block.SwitchBlock(expressions);
             }
         }
 
